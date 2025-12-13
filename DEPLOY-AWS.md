@@ -86,23 +86,108 @@ No cluster `coworkflow-cluster`, crie um **Service** para cada Task Definition c
 *   **Networking:** Selecione a mesma VPC e Subnets do ALB.
 *   **Security Group:** Permitir entrada na porta do serviço vindo do ALB ou dos outros containers (para comunicação interna).
 
-## 7. Passo 6: Configuração CI/CD (GitHub)
+## 7. Passo 6: Configuração do Pipeline (GitHub Actions)
 
-Para automatizar o deploy, vá as configurações do seu repositório no GitHub (`Settings > Secrets and variables > Actions`) e adicione:
+Para que o GitHub consiga conectar na sua conta AWS e atualizar os serviços, seguiremos este protocolo seguro.
 
-*   `AWS_ACCESS_KEY_ID`: Chave de acesso do usuário IAM.
-*   `AWS_SECRET_ACCESS_KEY`: Segredo do usuário IAM.
-*   `AWS_REGION`: Ex: `us-east-1`.
+### 6.1. Criar Usuário IAM para o CI/CD
 
-**Permissões do Usuário IAM:**
-O usuário deve ter permissões para:
-*   `AmazonEC2ContainerRegistryPowerUser` (Ler/Escrever no ECR).
-*   `AmazonECS_FullAccess` (Atualizar serviços no ECS).
+1.  No Console AWS, vá em **IAM** -> **Users** -> **Create user**.
+2.  Nome: `github-actions-deployer`.
+3.  Não habilite acesso ao console.
+4.  Em "Permissions", escolha **Attach policies directly**.
+5.  Crie uma política customizada (JSON) com as permissões mínimas necessárias:
 
----
-**Fluxo Final:**
-O pipeline (GitHub Actions) irá:
-1.  Buildar a imagem Docker.
-2.  Logar no ECR.
-3.  Enviar (Push) a imagem para o ECR.
-4.  Forçar uma atualização no Serviço ECS (`aws ecs update-service --force-new-deployment`), que baixará a nova imagem e substituirá os containers antigos.
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:PutImage"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices"
+            ],
+            "Resource": [
+                "arn:aws:ecs:*:*:service/coworkflow-cluster/*"
+            ]
+        }
+    ]
+}
+```
+
+6.  Após criar, vá na aba **Security credentials** do usuário e crie uma **Access Key**.
+7.  Copie a `Access Key ID` e a `Secret Access Key`.
+
+### 6.2. Configurar Segredos no GitHub
+
+No seu repositório GitHub, vá em **Settings** > **Secrets and variables** > **Actions** e crie os seguintes Repository secrets:
+
+*   `AWS_ACCESS_KEY_ID`: (Valor copiado do passo anterior)
+*   `AWS_SECRET_ACCESS_KEY`: (Valor copiado do passo anterior)
+*   `AWS_REGION`: `us-east-1` (ou a região que você escolheu)
+
+### 6.3. Atualizar o Workflow (ci-cd.yml)
+
+Substitua a etapa de deploy do seu arquivo `.github/workflows/ci-cd.yml` pelo modelo abaixo. Este exemplo mostra como fazer o build e deploy de UM serviço. Você deve replicar os passos para os outros serviços.
+
+```yaml
+jobs:
+  # ... (jobs de lint e test permanecem iguais)
+
+  deploy:
+    name: Build & Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: test # Só faz deploy se passar nos testes
+    if: github.ref == 'refs/heads/main' # Só deploy na branch main
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    # --- BLOCO REPLICÁVEL PARA CADA SERVIÇO ---
+    - name: Build and Push MS-Usuarios
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: coworkflow/ms-usuarios
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./ms-usuarios
+        # Push tag específica
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        # Tag latest para facilitar
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Update ECS Service MS-Usuarios
+      run: |
+        aws ecs update-service --cluster coworkflow-cluster --service ms-usuarios-service --force-new-deployment
+    # -------------------------------------------
+```
+
+**Nota:** Para cada microsserviço, você terá um bloco "Build and Push" e um comando "Update ECS Service" correspondentes. Certifique-se de que os nomes dos serviços no ECS (`ms-usuarios-service`) coincidam com o que você criou na AWS.
