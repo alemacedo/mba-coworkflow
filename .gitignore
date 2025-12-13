@@ -49,3 +49,6 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Terraform providers (ignore registry providers cache)
+terraform/.terraform/providers/registry.terraform.io/
