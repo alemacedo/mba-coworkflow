@@ -49,7 +49,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
 # Lista de Serviços para Iteração
 locals {
   services = {
-    "frontend"        = { port = 80, target_group = aws_lb_target_group.frontend.arn }
+    "frontend"        = { port = 3000, target_group = aws_lb_target_group.frontend.arn }
     "api-gateway"     = { port = 8000, target_group = aws_lb_target_group.api_gateway.arn }
     "ms-usuarios"     = { port = 5000, target_group = null }
     "ms-espacos"      = { port = 5000, target_group = null }
