@@ -7,11 +7,31 @@ swagger = Swagger(app)
 
 @app.route('/analytics/dashboard', methods=['GET'])
 def get_dashboard():
-    """Dashboard analytics
+    """
+    Obter dados do dashboard de analytics
     ---
+    tags:
+      - Analytics
     responses:
       200:
         description: Dados do dashboard
+        schema:
+          type: object
+          properties:
+            total_users:
+              type: integer
+            active_reservations:
+              type: integer
+            occupancy_rate:
+              type: number
+            popular_spaces:
+              type: array
+              items:
+                type: string
+            peak_hours:
+              type: array
+              items:
+                type: string
     """
     return jsonify({
         'total_users': random.randint(100, 1000),
@@ -23,11 +43,25 @@ def get_dashboard():
 
 @app.route('/analytics/usage', methods=['GET'])
 def get_usage():
-    """Relatório de uso
+    """
+    Obter relatório de uso dos espaços
     ---
+    tags:
+      - Analytics
     responses:
       200:
         description: Dados de uso
+        schema:
+          type: object
+          properties:
+            daily_bookings:
+              type: integer
+            average_session_duration:
+              type: number
+            most_used_space:
+              type: string
+            busiest_day:
+              type: string
     """
     return jsonify({
         'daily_bookings': random.randint(20, 80),

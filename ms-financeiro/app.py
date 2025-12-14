@@ -7,11 +7,23 @@ swagger = Swagger(app)
 
 @app.route('/financial/revenue', methods=['GET'])
 def get_revenue():
-    """Relatório de receita
+    """
+    Obter relatório de receitas
     ---
+    tags:
+      - Financeiro
     responses:
       200:
         description: Dados de receita
+        schema:
+          type: object
+          properties:
+            monthly_revenue:
+              type: number
+            yearly_revenue:
+              type: number
+            growth_rate:
+              type: number
     """
     return jsonify({
         'monthly_revenue': round(random.uniform(10000, 50000), 2),
@@ -21,11 +33,23 @@ def get_revenue():
 
 @app.route('/financial/expenses', methods=['GET'])
 def get_expenses():
-    """Relatório de despesas
+    """
+    Obter relatório de despesas
     ---
+    tags:
+      - Financeiro
     responses:
       200:
         description: Dados de despesas
+        schema:
+          type: object
+          properties:
+            monthly_expenses:
+              type: number
+            operational_costs:
+              type: number
+            maintenance_costs:
+              type: number
     """
     return jsonify({
         'monthly_expenses': round(random.uniform(5000, 20000), 2),

@@ -8,13 +8,33 @@ swagger = Swagger(app)
 
 @app.route('/checkin/<int:reservation_id>', methods=['POST'])
 def checkin(reservation_id):
-    """Fazer check-in
+    """
+    Fazer check-in na reserva
     ---
+    tags:
+      - Check-in/Check-out
     parameters:
-      - name: reservation_id
-        in: path
+      - in: path
+        name: reservation_id
         type: integer
         required: true
+        description: ID da reserva
+    responses:
+      200:
+        description: Check-in realizado
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            reservation_id:
+              type: integer
+            checkin_time:
+              type: string
+      400:
+        description: Erro no check-in
+      404:
+        description: Reserva não encontrada
     """
     # Validar reserva
     try:
@@ -40,13 +60,29 @@ def checkin(reservation_id):
 
 @app.route('/checkout/<int:reservation_id>', methods=['POST'])
 def checkout(reservation_id):
-    """Fazer check-out
+    """
+    Fazer check-out da reserva
     ---
+    tags:
+      - Check-in/Check-out
     parameters:
-      - name: reservation_id
-        in: path
+      - in: path
+        name: reservation_id
         type: integer
         required: true
+        description: ID da reserva
+    responses:
+      200:
+        description: Check-out realizado
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            reservation_id:
+              type: integer
+            checkout_time:
+              type: string
     """
     return jsonify({
         'message': 'Check-out successful',

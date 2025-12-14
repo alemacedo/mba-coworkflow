@@ -7,22 +7,47 @@ swagger = Swagger(app)
 
 @app.route('/pricing/calc', methods=['POST'])
 def calculate_price():
-    """Calcular preço
+    """
+    Calcular preço da reserva
     ---
+    tags:
+      - Preços
     parameters:
-      - name: body
-        in: body
-        required: true
+      - in: body
+        name: pricing
         schema:
+          type: object
+          required:
+            - space_id
+            - start_time
+            - end_time
           properties:
             space_id:
               type: integer
             start_time:
               type: string
+              format: date-time
             end_time:
               type: string
+              format: date-time
             user_plan:
               type: string
+              enum: ['basic', 'premium', 'enterprise']
+              default: basic
+    responses:
+      200:
+        description: Preço calculado
+        schema:
+          type: object
+          properties:
+            base_price:
+              type: number
+            hours:
+              type: number
+            discount:
+              type: number
+            total:
+              type: number
     """
     data = request.json
     

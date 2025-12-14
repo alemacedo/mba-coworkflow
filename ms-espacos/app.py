@@ -8,10 +8,65 @@ spaces_db = {}
 
 @app.route('/spaces', methods=['GET'])
 def get_spaces():
+    """
+    Listar todos os espaços
+    ---
+    tags:
+      - Espaços
+    responses:
+      200:
+        description: Lista de espaços
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              description:
+                type: string
+              capacity:
+                type: integer
+              price_per_hour:
+                type: number
+    """
     return jsonify(list(spaces_db.values()))
 
 @app.route('/spaces', methods=['POST'])
 def create_space():
+    """
+    Criar novo espaço
+    ---
+    tags:
+      - Espaços
+    parameters:
+      - in: body
+        name: space
+        schema:
+          type: object
+          required:
+            - name
+            - capacity
+            - price_per_hour
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+            capacity:
+              type: integer
+            price_per_hour:
+              type: number
+            photo_url:
+              type: string
+    responses:
+      201:
+        description: Espaço criado
+      400:
+        description: Dados inválidos
+    """
     data = request.json
     space_id = len(spaces_db) + 1
     space = {

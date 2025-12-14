@@ -18,13 +18,20 @@ class Payment(db.Model):
 
 @app.route('/payments/charge', methods=['POST'])
 def charge_payment():
-    """Processar pagamento
+    """
+    Processar pagamento
     ---
+    tags:
+      - Pagamentos
     parameters:
-      - name: body
-        in: body
-        required: true
+      - in: body
+        name: payment
         schema:
+          type: object
+          required:
+            - reservation_id
+            - amount
+            - method
           properties:
             reservation_id:
               type: integer
@@ -35,6 +42,18 @@ def charge_payment():
               enum: ['pix', 'card']
             card_data:
               type: object
+    responses:
+      200:
+        description: Pagamento processado
+        schema:
+          type: object
+          properties:
+            payment_id:
+              type: integer
+            transaction_id:
+              type: string
+            status:
+              type: string
     """
     data = request.json
     payment = Payment(
@@ -55,18 +74,35 @@ def charge_payment():
 
 @app.route('/payments/refund', methods=['POST'])
 def refund_payment():
-    """Estornar pagamento
+    """
+    Estornar pagamento
     ---
+    tags:
+      - Pagamentos
     parameters:
-      - name: body
-        in: body
-        required: true
+      - in: body
+        name: refund
         schema:
+          type: object
+          required:
+            - payment_id
           properties:
             payment_id:
               type: integer
             reason:
               type: string
+    responses:
+      200:
+        description: Pagamento estornado
+        schema:
+          type: object
+          properties:
+            payment_id:
+              type: integer
+            status:
+              type: string
+            refund_amount:
+              type: number
     """
     data = request.json
     payment = Payment.query.get_or_404(data['payment_id'])
